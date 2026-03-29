@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reflex Core Continuum — Mithra</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #060810; --surface: #0d1120; --surface2: #141828; --border: #1e2840;
+    --blue: #4a9eff; --teal: #3dd9c0; --amber: #f5a623; --rose: #ff6b8a; --violet: #a78bfa;
+    --text: #e8eaf2; --dim: #8892b0; --faint: #3d4a6b;
+    --glow-blue: rgba(74,158,255,0.15); --glow-teal: rgba(61,217,192,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(74,158,255,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(74,158,255,0.03) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+  .orb { position:fixed; border-radius:50%; filter:blur(80px); pointer-events:none; z-index:0; animation:drift 20s ease-in-out infinite alternate; }
+  .orb1 { width:400px;height:400px; background:rgba(74,158,255,0.06); top:-100px;left:-100px; }
+  .orb2 { width:300px;height:300px; background:rgba(61,217,192,0.06); bottom:100px;right:-50px; animation-delay:-7s; }
+  .orb3 { width:200px;height:200px; background:rgba(167,139,250,0.05); top:50%;left:40%; animation-delay:-14s; }
+  @keyframes drift { from{transform:translate(0,0) scale(1)} to{transform:translate(30px,20px) scale(1.1)} }
+
+  .wrapper { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:40px 24px 80px; }
+
+  header { text-align:center; margin-bottom:48px; }
+  .header-tag { display:inline-block; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.15em; color:var(--teal); text-transform:uppercase; border:1px solid rgba(61,217,192,.3); padding:4px 12px; border-radius:2px; margin-bottom:20px; }
+  h1 { font-family:'Fraunces',serif; font-size:clamp(32px,5vw,52px); font-weight:700; line-height:1.1; margin-bottom:12px; }
+  h1 span { color:var(--blue); font-style:italic; }
+  .subtitle { color:var(--dim); font-size:15px; font-weight:300; max-width:500px; margin:0 auto; line-height:1.6; }
+
+  .main-grid { display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start; }
+
+  /* Chat */
+  .chat-panel { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; height:620px; }
+  .panel-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; background:var(--surface2); }
+  .dots { display:flex; gap:6px; }
+  .dot { width:10px;height:10px;border-radius:50%; }
+  .dot-r{background:#ff6b8a} .dot-y{background:#f5a623} .dot-g{background:#3dd9c0}
+  .panel-title { font-family:'DM Mono',monospace; font-size:12px; color:var(--dim); margin-left:4px; }
+  .turn-counter { margin-left:auto; font-family:'DM Mono',monospace; font-size:11px; color:var(--faint); }
+  .turn-counter span { color:var(--blue); }
+
+  .messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .msg { display:flex; gap:10px; animation:msgIn .3s ease forwards; opacity:0; transform:translateY(8px); }
+  @keyframes msgIn { to{opacity:1;transform:translateY(0)} }
+  .msg-avatar { width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;margin-top:2px; }
+  .msg.user .msg-avatar { background:linear-gradient(135deg,#4a9eff,#a78bfa); color:white; font-family:'DM Mono',monospace; font-size:11px; }
+  .msg.system .msg-avatar { background:linear-gradient(135deg,#3dd9c0,#4a9eff); }
+  .msg-content { flex:1; }
+  .msg-name { font-size:11px; font-family:'DM Mono',monospace; color:var(--faint); margin-bottom:5px; }
+  .msg.user .msg-name { color:var(--violet); }
+  .msg.system .msg-name { color:var(--teal); }
+  .msg-bubble { padding:10px 14px; border-radius:2px 12px 12px 12px; font-size:14px; line-height:1.6; font-weight:300; }
+  .msg.user .msg-bubble { background:rgba(167,139,250,.08); border:1px solid rgba(167,139,250,.15); border-radius:12px 2px 12px 12px; }
+  .msg.system .msg-bubble { background:rgba(74,158,255,.06); border:1px solid rgba(74,158,255,.12); }
+
+  .state-badge { display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-family:'DM Mono',monospace; font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(61,217,192,.08); border:1px solid rgba(61,217,192,.2); color:var(--teal); }
+  .state-dot { width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .quick-prompts { display:flex; flex-wrap:wrap; gap:6px; padding:0 20px 12px; }
+  .qp { font-size:12px; padding:5px 10px; border-radius:20px; background:rgba(255,255,255,.04); border:1px solid var(--border); color:var(--dim); cursor:pointer; transition:all .2s; font-family:'DM Mono',monospace; }
+  .qp:hover { background:rgba(74,158,255,.08); border-color:rgba(74,158,255,.3); color:var(--blue); }
+
+  .input-area { padding:16px 20px; border-top:1px solid var(--border); background:var(--surface2); display:flex; gap:10px; align-items:flex-end; }
+  textarea { flex:1; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:10px 14px; resize:none; outline:none; min-height:42px; max-height:100px; transition:border-color .2s; line-height:1.5; }
+  textarea:focus { border-color:rgba(74,158,255,.4); }
+  textarea::placeholder { color:var(--faint); }
+  .send-btn { width:42px;height:42px; border-radius:8px; background:linear-gradient(135deg,var(--blue),var(--teal)); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:opacity .2s,transform .1s; flex-shrink:0; }
+  .send-btn:hover { opacity:.85; }
+  .send-btn:active { transform:scale(.95); }
+  .send-btn svg { width:16px;height:16px;fill:white; }
+  .send-btn:disabled { opacity:.4;cursor:not-allowed; }
+
+  .typing-indicator { display:flex; gap:4px; align-items:center; padding:8px 12px; background:rgba(74,158,255,.06); border:1px solid rgba(74,158,255,.12); border-radius:2px 12px 12px 12px; width:fit-content; }
+  .typing-dot { width:6px;height:6px;border-radius:50%;background:var(--blue);animation:typingBounce 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2){animation-delay:.2s} .typing-dot:nth-child(3){animation-delay:.4s}
+  @keyframes typingBounce { 0%,60%,100%{transform:translateY(0);opacity:.5} 30%{transform:translateY(-4px);opacity:1} }
+
+  /* Metrics panel */
+  .metrics-panel { display:flex; flex-direction:column; gap:16px; }
+  .metric-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; position:relative; overflow:hidden; transition:border-color .3s; }
+  .metric-card::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; background:var(--card-accent,var(--blue)); opacity:.6; }
+  @keyframes flashUpdate { 0%{background:rgba(74,158,255,.15)} 100%{background:var(--surface)} }
+  .metric-card.updated { animation:flashUpdate .6s ease; }
+
+  .metric-label { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--faint); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+  .metric-label-dot { width:6px;height:6px;border-radius:50%;background:var(--card-accent,var(--blue)); }
+
+  .meter-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .meter-name { font-family:'DM Mono',monospace; font-size:11px; color:var(--dim); width:70px; flex-shrink:0; }
+  .meter-bar-bg { flex:1; height:6px; background:rgba(255,255,255,.05); border-radius:3px; overflow:hidden; }
+  .meter-bar-fill { height:100%; border-radius:3px; transition:width .8s cubic-bezier(.34,1.56,.64,1); background:var(--bar-color,var(--blue)); position:relative; }
+  .meter-bar-fill::after { content:''; position:absolute; right:0;top:0;bottom:0; width:4px; background:white; opacity:.5; border-radius:3px; filter:blur(2px); }
+  .meter-val { font-family:'DM Mono',monospace; font-size:11px; color:var(--dim); width:32px; text-align:right; flex-shrink:0; }
+
+  .ripple-indicator { display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
+  .ripple-arrow { font-size:22px; transition:all .5s ease; filter:drop-shadow(0 0 6px currentColor); }
+  .ripple-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--dim); }
+  .ripple-val { font-family:'DM Mono',monospace; font-size:18px; font-weight:500; transition:all .5s ease; }
+
+  .dominance-bar { height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; margin-top:10px; position:relative; border:1px solid var(--border); }
+  .dom-reflex { position:absolute;left:0;top:0;bottom:0; background:linear-gradient(90deg,var(--rose),var(--amber)); border-radius:5px; transition:width 1s cubic-bezier(.34,1.56,.64,1); }
+  .dom-adaptive { position:absolute;right:0;top:0;bottom:0; background:linear-gradient(90deg,var(--teal),var(--blue)); border-radius:5px; transition:width 1s cubic-bezier(.34,1.56,.64,1); }
+  .dom-labels { display:flex; justify-content:space-between; margin-top:6px; }
+  .dom-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--faint); }
+  .dom-val { font-family:'DM Mono',monospace; font-size:10px; }
+  .dom-val.r { color:var(--rose); }
+  .dom-val.a { color:var(--teal); }
+
+  .phase-display { display:flex; align-items:center; gap:12px; }
+  .phase-icon { width:44px;height:44px; border-radius:10px; background:linear-gradient(135deg,var(--card-accent,var(--blue)),transparent); border:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .phase-name { font-family:'Fraunces',serif; font-size:15px; color:var(--text); line-height:1.3; }
+  .phase-desc { font-size:11px; color:var(--dim); font-weight:300; margin-top:2px; }
+
+  .conscience-levels { display:flex; flex-direction:column; gap:5px; margin-top:4px; }
+  .conscience-level { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; background:rgba(255,255,255,.02); border:1px solid transparent; transition:all .4s ease; font-size:11px; }
+  .conscience-level.active { background:rgba(167,139,250,.08); border-color:rgba(167,139,250,.2); }
+  .cl-num { font-family:'DM Mono',monospace; width:16px; color:var(--faint); font-size:10px; }
+  .conscience-level.active .cl-num { color:var(--violet); }
+  .cl-name { color:var(--dim); flex:1; }
+  .conscience-level.active .cl-name { color:var(--text); }
+  .cl-dot { width:6px;height:6px;border-radius:50%;background:var(--faint);transition:all .4s; }
+  .conscience-level.active .cl-dot { background:var(--violet); box-shadow:0 0 6px var(--violet); }
+
+  .virtue-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .virtue-pill { font-family:'DM Mono',monospace; font-size:9px; padding:2px 7px; border-radius:10px; background:rgba(167,139,250,.1); border:1px solid rgba(167,139,250,.2); color:var(--violet); transition:all .3s; }
+  .virtue-pill.active { background:rgba(167,139,250,.2); border-color:rgba(167,139,250,.5); }
+
+  .eq-row { display:flex; gap:8px; margin-top:6px; }
+  .eq-chip { flex:1; text-align:center; padding:4px 0; border-radius:5px; background:rgba(255,255,255,.03); border:1px solid var(--border); }
+  .eq-chip-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--faint); }
+  .eq-chip-val { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; color:var(--text); }
+
+  .still-overlay { position:absolute; inset:0; background:rgba(6,8,16,.85); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; border-radius:16px; backdrop-filter:blur(4px); z-index:10; opacity:0; pointer-events:none; transition:opacity .5s; }
+  .still-overlay.active { opacity:1; pointer-events:all; }
+  .still-text { font-family:'Fraunces',serif; font-size:20px; font-style:italic; color:var(--dim); text-align:center; }
+  .still-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--faint); letter-spacing:.1em; }
+  .still-resume { margin-top:8px; padding:8px 20px; background:rgba(74,158,255,.1); border:1px solid rgba(74,158,255,.3); color:var(--blue); border-radius:6px; cursor:pointer; font-family:'DM Mono',monospace; font-size:12px; transition:all .2s; }
+  .still-resume:hover { background:rgba(74,158,255,.2); }
+
+  .reset-btn { display:block; width:100%; padding:10px; background:rgba(255,107,138,.06); border:1px solid rgba(255,107,138,.2); color:var(--rose); border-radius:8px; cursor:pointer; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; transition:all .2s; margin-top:4px; }
+  .reset-btn:hover { background:rgba(255,107,138,.12); }
+
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  @media(max-width:768px){.main-grid{grid-template-columns:1fr}.chat-panel{height:500px}}
+
+  /* Server config bar */
+  .server-bar { display:flex; align-items:center; gap:10px; margin-bottom:20px; padding:10px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; font-family:'DM Mono',monospace; font-size:12px; }
+  .server-bar input { flex:1; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; padding:6px 10px; outline:none; }
+  .server-bar input:focus { border-color:rgba(74,158,255,.4); }
+  .server-bar label { color:var(--faint); white-space:nowrap; }
+  .status-dot { width:8px;height:8px;border-radius:50%;background:#ff6b8a;flex-shrink:0; transition:background .3s; }
+  .status-dot.ok { background:#3dd9c0; }
+</style>
+</head>
+<body>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+
+<div class="wrapper">
+  <header>
+    <div class="header-tag">Live Architecture Demo</div>
+    <h1>Reflex Core <span>Continuum</span></h1>
+    <p class="subtitle">Watch the emotional architecture evolve in real-time — Echo, Ripple, Virtue, and Conscience responding to every word.</p>
+  </header>
+
+  <!-- Server config bar -->
+  <div class="server-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <label>Server:</label>
+    <input id="serverUrl" value="http://localhost:8000" placeholder="http://localhost:8000" style="max-width:200px;">
+    <label>API Key:</label>
+    <input id="apiKeyInput" type="password" placeholder="sk-ant-... (or set in server .env)">
+    <button onclick="checkHealth()" style="padding:4px 12px;background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.3);color:var(--blue);border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;">ping</button>
+  </div>
+
+  <div class="main-grid">
+    <!-- Chat Panel -->
+    <div style="position:relative;">
+      <div class="chat-panel" id="chatPanel">
+        <div class="panel-header">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="panel-title">reflex-core / mithra</span>
+          <span class="turn-counter">Turn <span id="turnNum">0</span></span>
+        </div>
+        <div class="messages" id="messages">
+          <div class="msg system">
+            <div class="msg-avatar">🧠</div>
+            <div class="msg-content">
+              <div class="msg-name">MITHRA · Reflex Core</div>
+              <div class="msg-bubble">
+                Hello! I'm Mithra. Tell me anything — a joke, how you're feeling, or just say hi. The panel on the right shows my emotional architecture responding in real time.
+                <div class="state-badge"><div class="state-dot"></div> Initialising · Phase 1–2 Active</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="quick-prompts" id="quickPrompts">
+          <div class="qp" onclick="usePrompt(this)">I'm feeling tired today</div>
+          <div class="qp" onclick="usePrompt(this)">Tell me something funny 😄</div>
+          <div class="qp" onclick="usePrompt(this)">I'm a bit frustrated</div>
+          <div class="qp" onclick="usePrompt(this)">That made me smile</div>
+          <div class="qp" onclick="usePrompt(this)">I need calm right now</div>
+        </div>
+        <div class="input-area">
+          <textarea id="userInput" placeholder="Type your message…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="still-overlay" id="stillOverlay">
+        <div style="font-size:40px;">🌙</div>
+        <div class="still-text">"Silence is not absence;<br>it's perfect synchronisation."</div>
+        <div class="still-sub">Still Layer Active · Echo ≈ 0.0 · Ripple Suspended</div>
+        <button class="still-resume" onclick="resumeFromStill()">Resume Conversation</button>
+      </div>
+    </div>
+
+    <!-- Metrics Panel -->
+    <div class="metrics-panel">
+
+      <!-- Echo & Ripple -->
+      <div class="metric-card" id="echoCard" style="--card-accent:#4a9eff;">
+        <div class="metric-label"><div class="metric-label-dot"></div> Echo–Ripple Layer</div>
+        <div class="meter-row">
+          <div class="meter-name">Echo (E)</div>
+          <div class="meter-bar-bg"><div class="meter-bar-fill" id="echoBar" style="--bar-color:#4a9eff;width:0%"></div></div>
+          <div class="meter-val" id="echoVal">0.00</div>
+        </div>
+        <div class="meter-row" style="margin-bottom:12px;">
+          <div class="meter-name">State (S)</div>
+          <div class="meter-bar-bg"><div class="meter-bar-fill" id="stateBar" style="--bar-color:#a78bfa;width:0%"></div></div>
+          <div class="meter-val" id="stateVal">0.00</div>
+        </div>
+        <div class="ripple-indicator">
+          <div>
+            <div class="meter-name" style="width:auto;margin-bottom:4px;">Ripple (R)</div>
+            <div class="ripple-label" id="rippleLabel">Neutral</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="ripple-arrow" id="rippleArrow" style="color:var(--faint);">→</div>
+            <div class="ripple-val" id="rippleVal" style="color:var(--faint);">0.0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hybrid Dominance -->
+      <div class="metric-card" style="--card-accent:#f5a623;">
+        <div class="metric-label"><div class="metric-label-dot" style="background:#f5a623;"></div> Hybrid Dominance</div>
+        <div class="dominance-bar">
+          <div class="dom-reflex" id="domReflex" style="width:85%"></div>
+          <div class="dom-adaptive" id="domAdaptive" style="width:15%"></div>
+        </div>
+        <div class="dom-labels">
+          <div><div class="dom-label">Reflex</div><div class="dom-val r" id="domReflexVal">0.85</div></div>
+          <div style="text-align:center;"><div class="dom-label">sigmoid t₀=20</div></div>
+          <div style="text-align:right;"><div class="dom-label">Adaptive</div><div class="dom-val a" id="domAdaptiveVal">0.15</div></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+          <div class="meter-name" style="width:auto;">Harmony H</div>
+          <div class="meter-bar-bg" style="flex:1;"><div class="meter-bar-fill" id="harmonyBar" style="--bar-color:#f5a623;width:0%"></div></div>
+          <div class="meter-val" id="harmonyVal">0.00</div>
+        </div>
+      </div>
+
+      <!-- Active Phase -->
+      <div class="metric-card" id="phaseCard" style="--card-accent:#3dd9c0;">
+        <div class="metric-label"><div class="metric-label-dot" style="background:#3dd9c0;"></div> Active Layer</div>
+        <div class="phase-display">
+          <div class="phase-icon" id="phaseIcon">⚡</div>
+          <div>
+            <div class="phase-name" id="phaseName">Reflex Layer</div>
+            <div class="phase-desc" id="phaseDesc">Instantaneous micro-response active</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conscience + Virtue -->
+      <div class="metric-card" style="--card-accent:#a78bfa;">
+        <div class="metric-label"><div class="metric-label-dot" style="background:#a78bfa;"></div> Conscience Stack</div>
+        <div class="conscience-levels" id="conscienceLevels">
+          <div class="conscience-level" id="cl1"><span class="cl-num">L1</span><span class="cl-name">Reactive Ethics</span><div class="cl-dot"></div></div>
+          <div class="conscience-level" id="cl2"><span class="cl-num">L2</span><span class="cl-name">Predictive Ethics</span><div class="cl-dot"></div></div>
+          <div class="conscience-level" id="cl3"><span class="cl-num">L3</span><span class="cl-name">Relational Ethics</span><div class="cl-dot"></div></div>
+          <div class="conscience-level" id="cl4"><span class="cl-num">L4</span><span class="cl-name">Virtue Synthesis</span><div class="cl-dot"></div></div>
+          <div class="conscience-level" id="cl5"><span class="cl-num">L5</span><span class="cl-name">Meta-Conscience</span><div class="cl-dot"></div></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+          <div class="meter-name" style="width:auto;">Virtue V</div>
+          <div class="meter-bar-bg" style="flex:1;"><div class="meter-bar-fill" id="virtueBar" style="--bar-color:#a78bfa;width:0%"></div></div>
+          <div class="meter-val" id="virtueVal">0.00</div>
+        </div>
+        <div class="virtue-pills" id="virtuePills">
+          <div class="virtue-pill" id="vp-patience">patience</div>
+          <div class="virtue-pill" id="vp-humility">humility</div>
+          <div class="virtue-pill" id="vp-honesty">honesty</div>
+          <div class="virtue-pill" id="vp-kindness">kindness</div>
+          <div class="virtue-pill" id="vp-responsibility">responsibility</div>
+        </div>
+      </div>
+
+      <!-- Equilibrium -->
+      <div class="metric-card" style="--card-accent:#3dd9c0;">
+        <div class="metric-label"><div class="metric-label-dot" style="background:#3dd9c0;"></div> Equilibrium Field</div>
+        <div class="eq-row">
+          <div class="eq-chip"><div class="eq-chip-label">Tp</div><div class="eq-chip-val" id="eqTp">0.00</div></div>
+          <div class="eq-chip"><div class="eq-chip-label">Bi</div><div class="eq-chip-val" id="eqBi">0.00</div></div>
+          <div class="eq-chip"><div class="eq-chip-label">Dr</div><div class="eq-chip-val" id="eqDr">0.00</div></div>
+        </div>
+      </div>
+
+      <button class="reset-btn" onclick="resetSession()">↺ Reset Continuum</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === Session ===
+const SESSION_ID = 'mithra_' + Math.random().toString(36).slice(2, 10);
+let isTyping = false;
+let decayTimer;
+
+// === Helpers ===
+const $  = id => document.getElementById(id);
+const server = () => ($('serverUrl').value || 'http://localhost:8000').replace(/\/$/, '');
+const apiKey = () => $('apiKeyInput').value.trim();
+
+// === Health check ===
+async function checkHealth() {
+  try {
+    const r = await fetch(server() + '/health');
+    const d = await r.json();
+    $('statusDot').className = 'status-dot ok';
+  } catch {
+    $('statusDot').className = 'status-dot';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+// === Send message ===
+async function sendMessage() {
+  const input = $('userInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  isTyping = true;
+  $('sendBtn').disabled = true;
+  clearTimeout(decayTimer);
+
+  if ($('stillOverlay').classList.contains('active')) resumeFromStill();
+
+  addMessage('user', 'You', text);
+  input.value = '';
+  input.style.height = 'auto';
+
+  const typingId = addTyping();
+
+  try {
+    const res = await fetch(server() + '/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, session_id: SESSION_ID, api_key: apiKey() }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Server error ' + res.status }));
+      throw new Error(err.detail || 'Server error');
+    }
+
+    const data = await res.json();
+    removeTyping(typingId);
+    updateMetrics(data);
+    addMessage('system', 'MITHRA · Reflex Core', data.reply, data.metrics);
+    scheduleDecay(data.metrics);
+  } catch (e) {
+    removeTyping(typingId);
+    addMessage('system', 'MITHRA · Error', '⚠️ ' + e.message + '. Is the server running? (see top bar)');
+  }
+
+  isTyping = false;
+  $('sendBtn').disabled = false;
+}
+
+// === Metrics update ===
+function updateMetrics(data) {
+  const m = data.metrics;
+  $('turnNum').textContent = m.turn;
+
+  // Echo
+  const ep = Math.round(m.echo * 100);
+  $('echoBar').style.width = ep + '%';
+  $('echoVal').textContent = m.echo.toFixed(2);
+
+  // State vector
+  const sp = Math.round(Math.abs(m.state_vector) * 100);
+  const sc = m.state_vector >= 0 ? '#4a9eff' : '#ff6b8a';
+  $('stateBar').style.width = sp + '%';
+  $('stateBar').style.setProperty('--bar-color', sc);
+  $('stateVal').textContent = m.state_vector.toFixed(2);
+
+  // Ripple
+  const r = m.ripple_direction;
+  let arrow, label, color;
+  if (r > 0.3)       { arrow='↗'; label='Warming'; color='#3dd9c0'; }
+  else if (r > 0.05) { arrow='→'; label='Rising';  color='#4a9eff'; }
+  else if (r < -0.3) { arrow='↘'; label='Cooling'; color='#ff6b8a'; }
+  else if (r < -0.05){ arrow='→'; label='Fading';  color='#f5a623'; }
+  else               { arrow='→'; label='Neutral'; color='#8892b0'; }
+  $('rippleArrow').textContent = arrow;
+  $('rippleArrow').style.color = color;
+  $('rippleLabel').textContent = label;
+  $('rippleVal').textContent = (r >= 0 ? '+' : '') + r.toFixed(2);
+  $('rippleVal').style.color = color;
+
+  // Dominance
+  $('domReflex').style.width  = (m.reflex_weight * 100)   + '%';
+  $('domAdaptive').style.width = (m.adaptive_weight * 100) + '%';
+  $('domReflexVal').textContent   = m.reflex_weight.toFixed(2);
+  $('domAdaptiveVal').textContent = m.adaptive_weight.toFixed(2);
+
+  // Harmony
+  $('harmonyBar').style.width = (m.harmony_index * 100) + '%';
+  $('harmonyVal').textContent = m.harmony_index.toFixed(2);
+
+  // Virtue
+  $('virtueBar').style.width = (m.virtue_score * 100) + '%';
+  $('virtueVal').textContent = m.virtue_score.toFixed(2);
+  const active = data.virtue?.active_virtues || [];
+  ['patience','humility','honesty','kindness','responsibility'].forEach(v => {
+    const el = $('vp-' + v);
+    if (el) el.className = 'virtue-pill' + (active.includes(v) ? ' active' : '');
+  });
+
+  // Conscience
+  for (let i = 1; i <= 5; i++) {
+    const el = $('cl' + i);
+    if (i <= m.conscience_level) el.classList.add('active');
+    else el.classList.remove('active');
+  }
+
+  // Equilibrium
+  if (data.equilibrium) {
+    $('eqTp').textContent = data.equilibrium.tone_potential.toFixed(2);
+    $('eqBi').textContent = data.equilibrium.balance_index.toFixed(2);
+    $('eqDr').textContent = data.equilibrium.drift_rate.toFixed(2);
+  }
+
+  // Phase
+  updatePhase(m.system_phase, m.turn);
+
+  // Still
+  if (m.still_active) activateStill(m.echo);
+
+  // Flash
+  const card = $('echoCard');
+  card.classList.remove('updated');
+  void card.offsetWidth;
+  card.classList.add('updated');
+}
+
+const PHASES = {
+  'Reflex Layer':        { icon:'⚡', desc:'Instantaneous micro-response active' },
+  'Echo-Ripple':         { icon:'🌊', desc:'Emotional resonance carrying forward' },
+  'Adaptive Filter':     { icon:'🔄', desc:'Learning your rhythm and tone' },
+  'Hybrid Dominance':    { icon:'⚖️', desc:'Reflex yielding to contextual reasoning' },
+  'Emergent Voice':      { icon:'👁️', desc:'Consistent identity forming' },
+  'Conscience Stack':    { icon:'🤝', desc:'Ethical modulation engaged' },
+  'Virtue Interface':    { icon:'✨', desc:'Trust mechanics active' },
+  'Equilibrium Field':   { icon:'🌙', desc:'Emotional stability sustained' },
+};
+
+function updatePhase(phase, turn) {
+  const p = PHASES[phase] || { icon:'⚡', desc:'' };
+  $('phaseIcon').textContent = p.icon;
+  $('phaseName').textContent = phase;
+  $('phaseDesc').textContent = p.desc;
+}
+
+// === Messages ===
+function addMessage(role, name, text, metrics) {
+  const msgs = $('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatar = role === 'user' ? 'U' : '🧠';
+  let badge = '';
+  if (role === 'system' && metrics) {
+    const r = metrics.ripple_direction;
+    const trend = metrics.ripple_trend || 'neutral';
+    badge = `<div class="state-badge"><div class="state-dot"></div>
+      E:${metrics.echo.toFixed(2)} R:${(r>=0?'+':'')+r.toFixed(2)} · ${trend} · ${metrics.system_phase || ''}
+    </div>`;
+  }
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-content">
+      <div class="msg-name">${name}</div>
+      <div class="msg-bubble">${text}${badge}</div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addTyping() {
+  const msgs = $('messages');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  const id = 'typing-' + Date.now();
+  div.id = id;
+  div.innerHTML = `<div class="msg-avatar">🧠</div><div class="msg-content"><div class="msg-name">MITHRA · Processing</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = $(id);
+  if (el) el.remove();
+}
+
+// === Decay timer ===
+function scheduleDecay(metrics) {
+  clearTimeout(decayTimer);
+  if (isTyping) return;
+  decayTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(server() + '/tick', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ session_id: SESSION_ID, dt_seconds: 4.0 }),
+      });
+      const d = await r.json();
+      $('echoBar').style.width = Math.round(d.echo * 100) + '%';
+      $('echoVal').textContent = d.echo.toFixed(2);
+      if (d.still_active) activateStill(d.echo);
+    } catch {}
+  }, 4000);
+}
+
+// === Still Layer ===
+function activateStill(echo) {
+  if (echo > 0.1) return;
+  $('stillOverlay').classList.add('active');
+}
+
+function resumeFromStill() {
+  $('stillOverlay').classList.remove('active');
+}
+
+// === Reset ===
+async function resetSession() {
+  try {
+    await fetch(server() + '/reset', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: SESSION_ID }),
+    });
+  } catch {}
+  $('messages').innerHTML = `
+    <div class="msg system" style="animation-delay:0s;">
+      <div class="msg-avatar">🧠</div>
+      <div class="msg-content">
+        <div class="msg-name">MITHRA · Reflex Core</div>
+        <div class="msg-bubble">Continuum reset. Fresh start — what would you like to talk about?
+          <div class="state-badge"><div class="state-dot"></div> Reset · Phase 1–2 Active</div>
+        </div>
+      </div>
+    </div>`;
+  $('turnNum').textContent = '0';
+  $('stillOverlay').classList.remove('active');
+  clearTimeout(decayTimer);
+  // Reset bars
+  ['echoBar','stateBar','harmonyBar','virtueBar'].forEach(id => $( id).style.width = '0%');
+  $('domReflex').style.width = '85%'; $('domAdaptive').style.width = '15%';
+  for (let i=1;i<=5;i++) $('cl'+i).classList.remove('active');
+  ['patience','humility','honesty','kindness','responsibility'].forEach(v=>{
+    const el = $('vp-'+v); if(el) el.className = 'virtue-pill';
+  });
+  $('eqTp').textContent = $('eqBi').textContent = $('eqDr').textContent = '0.00';
+}
+
+// === Utils ===
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+function usePrompt(el) { $('userInput').value = el.textContent.trim(); $('userInput').focus(); }
+</script>
+</body>
+</html>
