@@ -174,7 +174,7 @@
   <div class="server-bar">
     <div class="status-dot" id="statusDot"></div>
     <label>Server:</label>
-    <input id="serverUrl" value="http://localhost:8000" placeholder="http://localhost:8000" style="max-width:200px;">
+    <input id="serverUrl" value="https://reflex-core-continuum-production.up.railway.app" placeholder="https://reflex-core-continuum-production.up.railway.app" style="max-width:200px;">
     <label>API Key:</label>
     <input id="apiKeyInput" type="password" placeholder="sk-ant-... (or set in server .env)">
     <button onclick="checkHealth()" style="padding:4px 12px;background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.3);color:var(--blue);border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;">ping</button>
@@ -329,7 +329,7 @@ let decayTimer;
 
 // === Helpers ===
 const $  = id => document.getElementById(id);
-const server = () => ($('serverUrl').value || 'http://localhost:8000').replace(/\/$/, '');
+const server = () => ($('serverUrl').value || 'https://reflex-core-continuum-production.up.railway.app').replace(/\/$/, '');
 const apiKey = () => $('apiKeyInput').value.trim();
 
 // === Health check ===
