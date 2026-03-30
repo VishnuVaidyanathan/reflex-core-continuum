@@ -62,7 +62,7 @@ RCC was A/B tested against a strong baseline across 100 tasks (5 metacognitive c
 | Self Error Detection | 0.950 | 0.950 |
 | Overall | 0.884 | **0.933** |
 
-Paper: [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6115627)
+
 
 ## Author
 
